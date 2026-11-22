@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocketcoach-offline-v6';
+const CACHE_NAME = 'pocketcoach-offline-v7';
 const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href;
 const APP_FILES = [APP_SHELL_URL, new URL('./manifest.webmanifest', self.registration.scope).href, new URL('./icon.svg', self.registration.scope).href];
 
