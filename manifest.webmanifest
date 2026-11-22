@@ -1,0 +1,19 @@
+{
+  "name": "PocketCoach AI",
+  "short_name": "PocketCoach",
+  "description": "Private, local fitness and calorie tracking",
+  "start_url": "./pocketcoach_ai.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

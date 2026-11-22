@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA Installation Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-title" content="PocketCoach">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <title>PocketCoach AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Progress ring */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Pulse animation for AI */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px 0px rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 25px 5px rgba(16, 185, 129, 0.7); }
+        }
+        .ai-avatar {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-200 antialiased h-screen flex justify-center overflow-hidden">
+
+    <!-- Mobile App Container -->
+    <div class="w-full max-w-md bg-slate-900 h-full flex flex-col relative shadow-2xl sm:border-x sm:border-slate-800">
+        
+        <!-- Header -->
+        <header class="bg-slate-800/80 backdrop-blur-md px-5 py-4 flex justify-between items-center sticky top-0 z-20 border-b border-slate-700/50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-slate-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h1 class="font-bold text-lg tracking-tight">PocketCoach <span class="text-emerald-400">AI</span></h1>
+            </div>
+            <div id="headerDate" class="text-xs font-medium text-slate-400"></div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto pb-24 relative">
+            
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content active p-5 space-y-6">
+                
+                <div class="bg-slate-800 rounded-3xl p-6 shadow-lg border border-slate-700/50 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v4H9v2h2v4h2v-4h2v-2h-2V7z"/></svg>
+                    </div>
+                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Today's Summary</h2>
+                    
+                    <div class="flex justify-between items-center mt-4">
+                        <div class="relative w-32 h-32 flex items-center justify-center">
+                            <svg class="w-32 h-32 absolute" viewBox="0 0 120 120">
+                                <circle class="text-slate-700 stroke-current" stroke-width="8" cx="60" cy="60" r="50" fill="transparent"></circle>
+                                <circle id="calProgressRing" class="text-emerald-500 stroke-current progress-ring__circle" stroke-width="8" stroke-linecap="round" cx="60" cy="60" r="50" fill="transparent" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+                            </svg>
+                            <div class="text-center z-10">
+                                <span id="dashCalConsumed" class="text-2xl font-bold text-white block">0</span>
+                                <span class="text-xs text-slate-400">kcal eaten</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 pl-6 space-y-4">
+                            <div>
+                                <p class="text-xs text-slate-400">Daily Target</p>
+                                <p id="dashCalTarget" class="font-semibold text-lg">0 kcal</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400">Remaining</p>
+                                <p id="dashCalRemaining" class="font-semibold text-lg text-emerald-400">0 kcal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-700/50 flex flex-col items-center justify-center text-center">
+                        <div id="dashGymStatusIcon" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center mb-2 text-slate-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                        </div>
+                        <h3 class="text-sm font-medium text-slate-300">Gym Today</h3>
+                        <p id="dashGymStatusText" class="text-xs text-slate-500 mt-1">Not logged</p>
+                    </div>
+                    
+                    <div class="bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-700/50 flex flex-col items-center justify-center text-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-900/30 flex items-center justify-center mb-2 text-blue-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        </div>
+                        <h3 class="text-sm font-medium text-slate-300">Deficit</h3>
+                        <p id="dashDeficitText" class="text-xs text-slate-500 mt-1">Calculated goal</p>
+                    </div>
+                </div>
+                
+                <!-- Quick AI Insight snippet on dashboard -->
+                <div class="bg-indigo-900/30 rounded-2xl p-4 border border-indigo-500/30 flex items-start gap-3">
+                    <div class="mt-1 text-indigo-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-indigo-300 mb-1">Quick Tip</h4>
+                        <p id="dashQuickTip" class="text-xs text-indigo-100/70 leading-relaxed">Keep logging your data to get personalized AI insights!</p>
+                    </div>
+                </div>
+
+                <!-- Weight Progress & Workout Count -->
+                <div class="col-span-2 bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-700/50">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-xs text-slate-400">Weight Progress</p>
+                            <p id="dashWeightProgress" class="font-semibold text-lg mt-1">No weight history</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Logged workouts</p>
+                            <p id="dashWorkoutCount" class="font-semibold text-lg text-emerald-400 mt-1">0 this week</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Log Data Tab -->
+            <section id="tab-log" class="tab-content p-5">
+                <h2 class="text-2xl font-bold mb-6">Log Activity</h2>
+                
+                <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 mb-6">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Food & Calories</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Add Calories</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="calorieInput" placeholder="e.g. 350" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors">
+                                <button onclick="app.addCalories()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-6 font-semibold transition-colors shadow-lg shadow-emerald-900/20">Add</button>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="app.addQuickCalories(100)" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition">+100</button>
+                            <button onclick="app.addQuickCalories(300)" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition">+300</button>
+                            <button onclick="app.addQuickCalories(500)" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition">+500</button>
+                            <button onclick="app.resetTodayCalories()" class="px-3 py-1.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg text-xs font-medium transition ml-auto">Reset</button>
+                        </div>
+                        
+                        <!-- Camera Input for Meals -->
+                        <div class="mt-4 pt-4 border-t border-slate-700">
+                            <input type="file" id="mealPhoto" accept="image/*" capture="environment" class="hidden" onchange="app.handleImageUpload(event)">
+                            <button onclick="document.getElementById('mealPhoto').click()" class="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl py-2 font-medium transition-colors border border-slate-600">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Snap Meal Photo
+                            </button>
+                            <canvas id="imageCanvas" class="hidden"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Fitness</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-white">Did you hit the gym today?</p>
+                            <p class="text-xs text-slate-400 mt-1">Weights, cardio, or sports.</p>
+                        </div>
+                        <!-- Toggle Switch -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="gymToggle" onchange="app.toggleGym()" class="sr-only peer">
+                            <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                    
+                    <!-- Workout Type Dropdown -->
+                    <div id="workoutTypeContainer" class="mt-4 hidden animate-[fadeIn_0.2s_ease-in-out]">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Workout Type</label>
+                        <select id="workoutType" onchange="app.saveWorkoutType()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="" disabled selected>Select Workout...</option>
+                            <option value="Push">Push (Chest, Shoulders, Triceps)</option>
+                            <option value="Pull">Pull (Back, Biceps)</option>
+                            <option value="Legs">Legs</option>
+                            <option value="Cardio">Cardio</option>
+                            <option value="Full Body">Full Body</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Simple Log History -->
+                <div class="mt-8">
+                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Recent Logs</h3>
+                     <div id="recentLogsList" class="space-y-3">
+                         <!-- Populated by JS -->
+                     </div>
+                </div>
+            </section>
+
+            <!-- AI Coach Tab -->
+            <section id="tab-ai" class="tab-content p-5 flex flex-col min-h-[80vh]">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 mx-auto bg-slate-800 rounded-full flex items-center justify-center mb-3 ai-avatar border-2 border-emerald-500/50">
+                        <svg class="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold">On-Device AI Coach</h2>
+                    <p class="text-xs text-slate-400 mt-1">Analyzing your local data securely.</p>
+                </div>
+
+                <div class="flex-1 bg-slate-800/50 rounded-2xl p-4 border border-slate-700 overflow-y-auto space-y-4 shadow-inner" id="aiChatBox">
+                    <!-- AI messages populate here -->
+                </div>
+                
+                <button onclick="app.generateAIInsights()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-3 font-semibold transition-colors shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Run Analysis
+                </button>
+            </section>
+
+            <!-- Profile Tab -->
+            <section id="tab-profile" class="tab-content p-5">
+                <h2 class="text-2xl font-bold mb-2">Your Profile</h2>
+                <p class="text-sm text-slate-400 mb-6">Set your metrics to calculate your BMR, TDEE, and optimal calorie deficit.</p>
+                
+                <form id="profileForm" class="space-y-4" onsubmit="app.saveProfile(event)">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Age</label>
+                            <input type="number" id="p_age" required min="10" max="120" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Gender</label>
+                            <select id="p_gender" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-medium text-slate-400">Height</label>
+                                <select id="p_height_unit" onchange="app.toggleHeightUnit()" class="bg-transparent text-xs text-emerald-400 focus:outline-none font-semibold">
+                                    <option value="cm">cm</option>
+                                    <option value="ft">ft / in</option>
+                                </select>
+                            </div>
+                            <!-- CM Input -->
+                            <input type="number" id="p_height" required min="100" max="250" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <!-- FT/IN Inputs -->
+                            <div id="p_height_ft_container" class="hidden flex gap-2">
+                                <input type="number" id="p_height_ft" placeholder="ft" min="3" max="8" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                                <input type="number" id="p_height_in" placeholder="in" min="0" max="11" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Weight (kg)</label>
+                            <input type="number" id="p_weight" required min="30" max="300" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Activity Level (Excluding Gym Target)</label>
+                        <select id="p_activity" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="1.2">Sedentary (Desk job, little daily motion)</option>
+                            <option value="1.375">Lightly Active (Light motion/walking)</option>
+                            <option value="1.55">Moderately Active (Active job/daily motion)</option>
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-1">We separate your gym sessions from baseline activity for better tracking.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Goal Deficit</label>
+                        <select id="p_goal" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="300">Mild Deficit (-300 kcal/day)</option>
+                            <option value="500" selected>Standard Deficit (-500 kcal/day)</option>
+                            <option value="800">Aggressive Deficit (-800 kcal/day)</option>
+                            <option value="0">Maintenance (0 kcal/day)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-semibold transition-colors shadow-lg shadow-emerald-900/20">
+                        Calculate & Save Profile
+                    </button>
+                </form>
+
+                <!-- Profile Results -->
+                <div id="profileResults" class="mt-6 hidden bg-slate-800 rounded-2xl p-5 border border-slate-700">
+                    <h3 class="text-sm font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-2">Your Targets</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-400">BMR</p>
+                            <p id="resBmr" class="font-bold text-lg">0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">TDEE</p>
+                            <p id="resTdee" class="font-bold text-lg">0</p>
+                        </div>
+                        <div class="col-span-2 bg-emerald-900/20 p-3 rounded-xl border border-emerald-900/50 mt-2">
+                            <p class="text-xs text-emerald-400 font-medium">Daily Target Calories</p>
+                            <p id="resTarget" class="font-bold text-2xl text-white">0 kcal</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-slate-800 rounded-2xl p-5 border border-slate-700">
+                    <h3 class="text-sm font-semibold text-slate-300 mb-3">Local Data Backup</h3>
+                    <p class="text-xs text-slate-400 mb-4">Your data stays in this phone/browser. Export it before clearing browser data or changing phones.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="app.exportData()" class="bg-slate-700 hover:bg-slate-600 text-white rounded-xl py-2.5 text-sm font-semibold">Export Backup</button>
+                        <label class="bg-slate-700 hover:bg-slate-600 text-white rounded-xl py-2.5 text-sm font-semibold text-center cursor-pointer">
+                            Import Backup
+                            <input type="file" accept="application/json" class="hidden" onchange="app.importData(event)">
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="absolute bottom-0 w-full bg-slate-900 border-t border-slate-800 pb-safe z-30 shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
+            <div class="flex justify-around items-center h-16 px-2">
+                <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-emerald-500 transition-colors">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="text-[10px] font-medium">Home</span>
+                </button>
+                <button onclick="app.switchTab('log')" id="nav-log" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span class="text-[10px] font-medium">Log</span>
+                </button>
+                <button onclick="app.switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    <span class="text-[10px] font-medium">Coach</span>
+                </button>
+                <button onclick="app.switchTab('profile')" id="nav-profile" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="text-[10px] font-medium">Profile</span>
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Setup Overlay -->
+        <div id="setupOverlay" class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-40 hidden flex-col items-center justify-center p-6 text-center">
+            <div class="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mb-6 text-slate-900 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold mb-2">Welcome to PocketCoach</h2>
+            <p class="text-slate-400 mb-8">Before we begin, we need to set up your physiological profile to calculate your goals.</p>
+            <button onclick="app.closeSetupAndGoToProfile()" class="bg-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-lg">Let's Go</button>
+        </div>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const app = {
+            data: {
+                profile: null, // { age, weight, height, gender, activity, deficit, bmr, tdee, targetCalories }
+                logs: {},      // { "YYYY-MM-DD": { calories: number, gym: boolean } }
+                weightHistory: []
+            },
+            
+            // Initialization
+            init() {
+                // Set Header Date
+                const options = { weekday: 'long', month: 'short', day: 'numeric' };
+                document.getElementById('headerDate').innerText = new Date().toLocaleDateString('en-US', options);
+
+                this.loadData();
+
+                if (!this.data.profile) {
+                    // Show onboarding overlay
+                    document.getElementById('setupOverlay').style.display = 'flex';
+                } else {
+                    this.populateProfileForm();
+                    this.updateDashboard();
+                    this.renderRecentLogs();
+                    // Generate a quick tip for dashboard
+                    this.generateQuickTip();
+                }
+            },
+
+            loadData() {
+                try {
+                    const profileData = localStorage.getItem('pc_profile');
+                    const logsData = localStorage.getItem('pc_logs');
+                    const weightData = localStorage.getItem('pc_weight_history');
+                    if (profileData) this.data.profile = JSON.parse(profileData);
+                    if (logsData) this.data.logs = JSON.parse(logsData);
+                    if (weightData) this.data.weightHistory = JSON.parse(weightData);
+                } catch (e) {
+                    console.error("Error loading local storage data", e);
+                }
+            },
+
+            saveData() {
+                localStorage.setItem('pc_profile', JSON.stringify(this.data.profile));
+                localStorage.setItem('pc_logs', JSON.stringify(this.data.logs));
+                localStorage.setItem('pc_weight_history', JSON.stringify(this.data.weightHistory));
+            },
+
+            getTodayString() {
+                const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+                return (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+            },
+
+            // Navigation
+            switchTab(tabId) {
+                // Prevent leaving profile if not set up
+                if (!this.data.profile && tabId !== 'profile') {
+                    alert("Please set up your profile first!");
+                    return;
+                }
+
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.classList.remove('active');
+                });
+                // Show target tab
+                document.getElementById('tab-' + tabId).classList.add('active');
+
+                // Update Nav UI
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('text-emerald-500');
+                    btn.classList.add('text-slate-500');
+                });
+                document.getElementById('nav-' + tabId).classList.remove('text-slate-500');
+                document.getElementById('nav-' + tabId).classList.add('text-emerald-500');
+
+                // Trigger specific updates based on tab
+                if (tabId === 'dashboard') {
+                    this.updateDashboard();
+                } else if (tabId === 'log') {
+                    this.updateLogUI();
+                }
+            },
+
+            closeSetupAndGoToProfile() {
+                document.getElementById('setupOverlay').style.display = 'none';
+                this.switchTab('profile');
+            },
+
+            // Profile & Calculations
+            saveProfile(e) {
+                e.preventDefault();
+                
+                const age = parseInt(document.getElementById('p_age').value);
+                const gender = document.getElementById('p_gender').value;
+                const weight = parseFloat(document.getElementById('p_weight').value);
+                const activityLevel = parseFloat(document.getElementById('p_activity').value);
+                const deficitGoal = parseInt(document.getElementById('p_goal').value);
+
+                // Height unit conversion logic
+                const unit = document.getElementById('p_height_unit').value;
+                let height = 0;
+                let heightFt = null;
+                let heightIn = null;
+
+                if (unit === 'cm') {
+                    height = parseFloat(document.getElementById('p_height').value);
+                } else {
+                    heightFt = parseFloat(document.getElementById('p_height_ft').value) || 0;
+                    heightIn = parseFloat(document.getElementById('p_height_in').value) || 0;
+                    height = (heightFt * 30.48) + (heightIn * 2.54);
+                }
+
+                // Mifflin-St Jeor Equation
+                let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+                bmr = gender === 'male' ? bmr + 5 : bmr - 161;
+                
+                const tdee = bmr * activityLevel;
+                const targetCalories = tdee - deficitGoal;
+
+                this.data.profile = {
+                    age, gender, height, weight, activityLevel, deficitGoal,
+                    unit, heightFt, heightIn,
+                    bmr: Math.round(bmr),
+                    tdee: Math.round(tdee),
+                    targetCalories: Math.round(targetCalories)
+                };
+
+                this.saveData();
+                const today = this.getTodayString();
+                const existing = this.data.weightHistory.find(entry => entry.date === today);
+                if (existing) {
+                    existing.weight = weight;
+                } else {
+                    this.data.weightHistory.push({ date: today, weight });
+                }
+                this.data.weightHistory.sort((a, b) => a.date.localeCompare(b.date));
+                this.saveData();
+                this.showProfileResults();
+                this.generateQuickTip();
+                
+                // Show a quick custom message box instead of alert
+                this.showMessageBox("Profile Saved! Your targets have been updated.");
+            },
+
+            populateProfileForm() {
+                if (!this.data.profile) return;
+                const p = this.data.profile;
+                document.getElementById('p_age').value = p.age;
+                document.getElementById('p_gender').value = p.gender;
+                document.getElementById('p_weight').value = p.weight;
+                document.getElementById('p_activity').value = p.activityLevel;
+                document.getElementById('p_goal').value = p.deficitGoal;
+                
+                if (p.unit) {
+                    document.getElementById('p_height_unit').value = p.unit;
+                    this.toggleHeightUnit();
+                }
+                
+                if (p.unit === 'ft') {
+                    document.getElementById('p_height_ft').value = p.heightFt || '';
+                    document.getElementById('p_height_in').value = p.heightIn || '';
+                } else {
+                    document.getElementById('p_height').value = p.height;
+                }
+
+                this.showProfileResults();
+            },
+            
+            toggleHeightUnit() {
+                const unit = document.getElementById('p_height_unit').value;
+                if (unit === 'cm') {
+                    document.getElementById('p_height').classList.remove('hidden');
+                    document.getElementById('p_height').setAttribute('required', 'true');
+                    document.getElementById('p_height_ft_container').classList.add('hidden');
+                    document.getElementById('p_height_ft').removeAttribute('required');
+                    document.getElementById('p_height_in').removeAttribute('required');
+                } else {
+                    document.getElementById('p_height').classList.add('hidden');
+                    document.getElementById('p_height').removeAttribute('required');
+                    document.getElementById('p_height_ft_container').classList.remove('hidden');
+                    document.getElementById('p_height_ft').setAttribute('required', 'true');
+                    document.getElementById('p_height_in').setAttribute('required', 'true');
+                }
+            },
+
+            showProfileResults() {
+                if (!this.data.profile) return;
+                document.getElementById('profileResults').classList.remove('hidden');
+                document.getElementById('resBmr').innerText = this.data.profile.bmr + ' kcal';
+                document.getElementById('resTdee').innerText = this.data.profile.tdee + ' kcal';
+                document.getElementById('resTarget').innerText = this.data.profile.targetCalories + ' kcal';
+            },
+
+            // Logging Data
+            initTodayLog() {
+                const today = this.getTodayString();
+                if (!this.data.logs[today]) {
+                    this.data.logs[today] = { calories: 0, gym: false, workoutType: '', mealImages: [] };
+                }
+                if (!this.data.logs[today].mealImages) this.data.logs[today].mealImages = [];
+                return today;
+            },
+
+            addCalories() {
+                const input = document.getElementById('calorieInput');
+                const cals = parseInt(input.value);
+                if (isNaN(cals) || cals <= 0) return;
+                
+                const today = this.initTodayLog();
+                this.data.logs[today].calories += cals;
+                this.saveData();
+                
+                input.value = '';
+                this.updateLogUI();
+                this.renderRecentLogs();
+            },
+
+            addQuickCalories(amount) {
+                const today = this.initTodayLog();
+                this.data.logs[today].calories += amount;
+                this.saveData();
+                this.updateLogUI();
+                this.renderRecentLogs();
+            },
+            
+            resetTodayCalories() {
+                const today = this.initTodayLog();
+                this.data.logs[today].calories = 0;
+                this.saveData();
+                this.updateLogUI();
+                this.renderRecentLogs();
+            },
+
+            toggleGym() {
+                const toggle = document.getElementById('gymToggle');
+                const today = this.initTodayLog();
+                this.data.logs[today].gym = toggle.checked;
+                if (!toggle.checked) {
+                    this.data.logs[today].workoutType = '';
+                    document.getElementById('workoutType').value = '';
+                }
+                this.saveData();
+                this.updateLogUI();
+                this.renderRecentLogs();
+            },
+            
+            saveWorkoutType() {
+                const type = document.getElementById('workoutType').value;
+                const today = this.initTodayLog();
+                this.data.logs[today].workoutType = type;
+                this.saveData();
+                this.renderRecentLogs();
+            },
+            
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.getElementById('imageCanvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Compress image strongly to avoid breaking localStorage quota
+                        const MAX_WIDTH = 400; 
+                        let scaleSize = 1;
+                        if (img.width > MAX_WIDTH) {
+                            scaleSize = MAX_WIDTH / img.width;
+                        }
+                        
+                        canvas.width = img.width * scaleSize;
+                        canvas.height = img.height * scaleSize;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // Convert to base64 JPEG
+                        const base64 = canvas.toDataURL('image/jpeg', 0.6);
+                        
+                        const today = this.initTodayLog();
+                        this.data.logs[today].mealImages.push(base64);
+                        this.saveData();
+                        this.renderRecentLogs();
+                        this.showMessageBox("Meal photo saved!");
+                    }
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
+
+            updateLogUI() {
+                const today = this.getTodayString();
+                const log = this.data.logs[today] || { calories: 0, gym: false, workoutType: '' };
+                document.getElementById('gymToggle').checked = log.gym;
+                
+                const workoutContainer = document.getElementById('workoutTypeContainer');
+                if (log.gym) {
+                    workoutContainer.classList.remove('hidden');
+                    document.getElementById('workoutType').value = log.workoutType || '';
+                } else {
+                    workoutContainer.classList.add('hidden');
+                }
+            },
+
+            renderRecentLogs() {
+                const container = document.getElementById('recentLogsList');
+                container.innerHTML = '';
+                
+                // Get last 5 days
+                const sortedDates = Object.keys(this.data.logs).sort().reverse().slice(0, 5);
+                
+                if (sortedDates.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-500 italic">No logs yet.</p>';
+                    return;
+                }
+
+                sortedDates.forEach(dateStr => {
+                    const log = this.data.logs[dateStr];
+                    const isToday = dateStr === this.getTodayString();
+                    const displayDate = isToday ? 'Today' : new Date(dateStr).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                    
+                    let gymText = log.gym ? (log.workoutType || 'Gym') : 'Rest';
+                    const gymIcon = log.gym ? 
+                        `<span class="text-emerald-400 flex items-center text-xs"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${gymText}</span>` : 
+                        `<span class="text-slate-500 flex items-center text-xs"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Rest</span>`;
+
+                    const target = this.data.profile ? this.data.profile.targetCalories : 2000;
+                    const calColor = log.calories > target ? 'text-amber-400' : 'text-slate-300';
+                    
+                    // Generate Meal Images HTML
+                    let imagesHtml = '';
+                    if (log.mealImages && log.mealImages.length > 0) {
+                        imagesHtml = `<div class="flex gap-2 mt-3 overflow-x-auto pb-1">`;
+                        log.mealImages.forEach(imgData => {
+                            imagesHtml += `<img src="${imgData}" class="w-12 h-12 rounded-lg object-cover border border-slate-700 shadow-sm" alt="Meal">`;
+                        });
+                        imagesHtml += `</div>`;
+                    }
+
+                    const html = `
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-slate-300 w-16">${displayDate}</span>
+                                <span class="text-sm font-bold ${calColor}">${log.calories} <span class="text-[10px] font-normal text-slate-500">kcal</span></span>
+                                ${gymIcon}
+                            </div>
+                            ${imagesHtml}
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+            },
+
+            // Dashboard Updates
+            updateDashboard() {
+                if (!this.data.profile) return;
+                
+                const today = this.getTodayString();
+                const log = this.data.logs[today] || { calories: 0, gym: false };
+                const target = this.data.profile.targetCalories;
+                
+                // Update numbers
+                document.getElementById('dashCalTarget').innerText = target + ' kcal';
+                document.getElementById('dashCalConsumed').innerText = log.calories;
+                
+                const remaining = target - log.calories;
+                const remEl = document.getElementById('dashCalRemaining');
+                if (remaining >= 0) {
+                    remEl.innerText = remaining + ' kcal left';
+                    remEl.className = 'font-semibold text-lg text-emerald-400';
+                } else {
+                    remEl.innerText = Math.abs(remaining) + ' kcal over';
+                    remEl.className = 'font-semibold text-lg text-red-400';
+                }
+
+                // Update Progress Ring
+                const ring = document.getElementById('calProgressRing');
+                const circumference = 2 * Math.PI * 50; // r=50
+                const percent = Math.min(log.calories / target, 1);
+                const offset = circumference - (percent * circumference);
+                ring.style.strokeDashoffset = offset;
+                
+                if (percent > 1) {
+                    ring.classList.remove('text-emerald-500');
+                    ring.classList.add('text-red-500');
+                } else if (percent > 0.85) {
+                    ring.classList.remove('text-emerald-500', 'text-red-500');
+                    ring.classList.add('text-amber-400');
+                } else {
+                    ring.classList.remove('text-red-500', 'text-amber-400');
+                    ring.classList.add('text-emerald-500');
+                }
+
+                // Update Gym Status
+                const gymIcon = document.getElementById('dashGymStatusIcon');
+                const gymText = document.getElementById('dashGymStatusText');
+                if (log.gym) {
+                    gymIcon.className = 'w-12 h-12 rounded-full bg-emerald-900/50 flex items-center justify-center mb-2 text-emerald-400 border border-emerald-500/30';
+                    gymIcon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                    gymText.innerText = "Crushed it!";
+                    gymText.classList.add('text-emerald-400');
+                } else {
+                    gymIcon.className = 'w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center mb-2 text-slate-400';
+                    gymIcon.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>`;
+                    gymText.innerText = "Not yet";
+                    gymText.classList.remove('text-emerald-400');
+                }
+
+                // Update Weight Progress
+                const weightLog = this.data.weightHistory[this.data.weightHistory.length - 1];
+                const weightProgressEl = document.getElementById('dashWeightProgress');
+                if (weightLog) {
+                    weightProgressEl.innerText = `${weightLog.weight} kg`;
+                } else {
+                    weightProgressEl.innerText = 'No weight history';
+                }
+
+                // Update Workout Count
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
+                const weekEnd = new Date();
+                weekEnd.setDate(weekEnd.getDate() + (6 - weekEnd.getDay())); // Set to Saturday
+
+                const workoutCount = Object.keys(this.data.logs).filter(date => {
+                    const logDate = new Date(date);
+                    return logDate >= weekStart && logDate <= weekEnd && this.data.logs[date].gym;
+                }).length;
+
+                document.getElementById('dashWorkoutCount').innerText = `${workoutCount} this week`;
+            },
+
+            // --- AI Coach (Rule-Based Engine) ---
+
+            generateQuickTip() {
+                if (!this.data.profile) return;
+                const tipEl = document.getElementById('dashQuickTip');
+                const today = this.getTodayString();
+                const log = this.data.logs[today];
+
+                if (!log || log.calories === 0) {
+                    tipEl.innerText = "Morning! Don't forget to log your first meal of the day.";
+                    return;
+                }
+
+                if (log.calories < this.data.profile.bmr && log.calories > 0) {
+                    tipEl.innerText = `You are currently below your BMR (${this.data.profile.bmr} kcal). Make sure to fuel your body!`;
+                } else if (log.calories > this.data.profile.targetCalories) {
+                    tipEl.innerText = "You're slightly over your target today. Try adding a walk or drinking water!";
+                } else if (log.gym) {
+                    tipEl.innerText = "Great job hitting the gym! Muscle recovery requires adequate protein today.";
+                } else {
+                    tipEl.innerText = "You are on track with your calories. Keep it up!";
+                }
+            },
+
+            analyzePastDays(days) {
+                const dates = Object.keys(this.data.logs).sort().reverse();
+                let totalCals = 0;
+                let daysLogged = 0;
+                let gymDays = 0;
+                let hitLegs = false;
+                
+                const now = new Date();
+                const tzOffset = now.getTimezoneOffset() * 60000;
+                
+                for (let i = 0; i < days; i++) {
+                    const checkDate = new Date(Date.now() - tzOffset - (i * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                    const log = this.data.logs[checkDate];
+                    
+                    if (log) {
+                        if (log.calories > 0) {
+                            totalCals += log.calories;
+                            daysLogged++;
+                        }
+                        if (log.gym) {
+                            gymDays++;
+                            if (log.workoutType === 'Legs' || log.workoutType === 'Full Body') {
+                                hitLegs = true;
+                            }
+                        }
+                    }
+                }
+                
+                const avgCals = daysLogged > 0 ? Math.round(totalCals / daysLogged) : 0;
+                return { avgCals, daysLogged, gymDays, hitLegs };
+            },
+
+            generateAIInsights() {
+                const chatBox = document.getElementById('aiChatBox');
+                chatBox.innerHTML = ''; // Clear previous
+
+                this.addChatBubble('system', "Analyzing your local data...");
+
+                setTimeout(() => {
+                    const stats = this.analyzePastDays(7);
+                    const p = this.data.profile;
+                    
+                    let insights = [];
+
+                    // Base Check
+                    if (stats.daysLogged === 0) {
+                        insights.push("I don't have enough data for the past 7 days. Start logging your meals and workouts so I can guide you!");
+                    } else {
+                        // Volume Check
+                        if (stats.daysLogged < 3) {
+                            insights.push(`You've only logged ${stats.daysLogged} day(s) this week. Consistency in tracking is key to seeing results!`);
+                        }
+
+                        // Calorie Analysis
+                        const calDiff = stats.avgCals - p.targetCalories;
+                        if (stats.avgCals > 0) {
+                            if (stats.avgCals < p.bmr - 200) {
+                                insights.push(`⚠️ **Warning:** Your 7-day average intake (${stats.avgCals} kcal) is significantly below your Basal Metabolic Rate (${p.bmr} kcal). This can lead to muscle loss and metabolic slowdown. Please eat more!`);
+                            } else if (Math.abs(calDiff) <= 150) {
+                                insights.push(`🎯 **Spot On:** Your average intake (${stats.avgCals} kcal) is perfectly in line with your target (${p.targetCalories} kcal). Excellent discipline!`);
+                            } else if (calDiff > 150) {
+                                insights.push(`📈 **Trend:** You're averaging ${stats.avgCals} kcal/day, which is roughly ${calDiff} kcal over your deficit target. Consider reducing portion sizes slightly or swapping out high-calorie snacks.`);
+                            }
+                        }
+
+                        // Gym Analysis
+                        if (stats.gymDays >= 4) {
+                            insights.push(`💪 **Beast Mode:** You hit the gym ${stats.gymDays} times this week! Make sure you are prioritizing protein and getting enough sleep for recovery.`);
+                        } else if (stats.gymDays > 0) {
+                            insights.push(`🏃 **Active:** Good job getting ${stats.gymDays} workout(s) in. Try aiming for 3-4 days a week for optimal cardiovascular and strength benefits.`);
+                        } else {
+                            insights.push(`🛋️ **Sedentary Week:** I noticed no gym days logged recently. Even a 20-minute home workout or a brisk walk counts!`);
+                        }
+                        
+                        // Leg Day AI Check
+                        if (!stats.hitLegs && stats.daysLogged > 0) {
+                            insights.push(`🦵 **You haven't hit legs this week!** Try to fit a leg session in before the week ends. Remember, skipping leg day can lead to muscle imbalances!`);
+                        }
+                    }
+
+                    // Render insights one by one
+                    chatBox.innerHTML = ''; // Clear 'analyzing' message
+                    insights.forEach((text, index) => {
+                        setTimeout(() => {
+                            this.addChatBubble('ai', text);
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                        }, index * 800); // Stagger message appearance
+                    });
+
+                }, 1000); // Fake processing delay for UX
+            },
+
+            addChatBubble(sender, text) {
+                const chatBox = document.getElementById('aiChatBox');
+                // parse simple markdown (bold)
+                const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+                
+                let bubbleHtml = '';
+                if (sender === 'ai' || sender === 'system') {
+                    bubbleHtml = `
+                        <div class="flex gap-3 animate-[fadeIn_0.5s_ease-out]">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0 flex items-center justify-center text-emerald-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <div class="bg-slate-700/50 rounded-2xl rounded-tl-none p-3 text-sm text-slate-300 leading-relaxed border border-slate-600/50">
+                                ${formattedText}
+                            </div>
+                        </div>
+                    `;
+                }
+                chatBox.insertAdjacentHTML('beforeend', bubbleHtml);
+            },
+
+            // Custom Message Box (Replaces alert)
+            showMessageBox(message) {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300';
+                
+                const box = document.createElement('div');
+                box.className = 'bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl max-w-sm w-full transform scale-95 transition-transform duration-300 text-center';
+                
+                box.innerHTML = `
+                    <div class="w-12 h-12 bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <p class="text-slate-200 font-medium mb-6">${message}</p>
+                    <button id="msgOkBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-8 rounded-xl transition-colors w-full">Got it</button>
+                `;
+                
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+                
+                // Animate in
+                requestAnimationFrame(() => {
+                    overlay.classList.remove('opacity-0');
+                    box.classList.remove('scale-95');
+                });
+
+                document.getElementById('msgOkBtn').addEventListener('click', () => {
+                    overlay.classList.add('opacity-0');
+                    box.classList.add('scale-95');
+                    setTimeout(() => overlay.remove(), 300);
+                });
+            },
+
+            // Data Export/Import
+            exportData() {
+                const dataStr = JSON.stringify(this.data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'pocketcoach_backup.json');
+                a.click();
+                
+                URL.revokeObjectURL(url);
+            },
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        this.data = importedData;
+                        this.saveData();
+                        this.showMessageBox("Data imported successfully! Please check your profile and logs.");
+                        
+                        // Auto-switch to profile tab to review data
+                        this.switchTab('profile');
+                    } catch (err) {
+                        console.error("Error importing data", err);
+                        this.showMessageBox("Failed to import data. Please ensure the file is valid.");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // Initialize App on Load
+        document.addEventListener('DOMContentLoaded', () => app.init());
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(error => {
+                    console.error('PocketCoach offline setup failed:', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
