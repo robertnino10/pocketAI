@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocketcoach-offline-v3';
+const CACHE_NAME = 'pocketcoach-offline-v4';
 const APP_FILES = ['./index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
@@ -12,11 +12,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys
-        .filter(key => key !== CACHE_NAME)
-        .map(key => caches.delete(key))
-    );
+    await Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
@@ -37,10 +33,7 @@ self.addEventListener('fetch', event => {
         const cache = await caches.open(CACHE_NAME);
         return (await cache.match('./index.html')) ||
                (await cache.match(event.request)) ||
-               new Response('PocketCoach could not load offline.', {
-                 status: 503,
-                 headers: { 'Content-Type': 'text/plain' }
-               });
+               new Response('PocketCoach could not load offline.', { status: 503 });
       }
     })());
     return;
