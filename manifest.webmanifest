@@ -2,7 +2,7 @@
   "name": "PocketCoach AI",
   "short_name": "PocketCoach",
   "description": "Private, local fitness and calorie tracking",
-  "start_url": "./pocketcoach_ai.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

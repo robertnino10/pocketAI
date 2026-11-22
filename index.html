@@ -1030,10 +1030,18 @@
         document.addEventListener('DOMContentLoaded', () => app.init());
 
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(error => {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        window.location.reload();
+                    });
+
+                    registration.update();
+                } catch (error) {
                     console.error('PocketCoach offline setup failed:', error);
-                });
+                }
             });
         }
     </script>
