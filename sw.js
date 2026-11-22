@@ -1,10 +1,11 @@
-const CACHE_NAME = 'pocketcoach-offline-v4';
-const APP_FILES = ['./index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'pocketcoach-offline-v6';
+const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href;
+const APP_FILES = [APP_SHELL_URL, new URL('./manifest.webmanifest', self.registration.scope).href, new URL('./icon.svg', self.registration.scope).href];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await Promise.allSettled(APP_FILES.map(url => cache.add(url)));
+    await cache.addAll(APP_FILES);
   })());
   self.skipWaiting();
 });
@@ -12,7 +13,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => key.startsWith('pocketcoach-') && key !== CACHE_NAME).map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
@@ -26,12 +27,12 @@ self.addEventListener('fetch', event => {
         const response = await fetch(event.request);
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          await cache.put('./index.html', response.clone());
+          await cache.put(APP_SHELL_URL, response.clone());
         }
         return response;
       } catch (_error) {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match('./index.html')) ||
+        return (await cache.match(APP_SHELL_URL)) ||
                (await cache.match(event.request)) ||
                new Response('PocketCoach could not load offline.', { status: 503 });
       }

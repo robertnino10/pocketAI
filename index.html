@@ -63,12 +63,52 @@
             animation: pulse-glow 2s infinite;
         }
 
+        .entry-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.5rem;
+        }
+
+        .entry-row > * {
+            min-width: 0;
+        }
+
+        .calendar-bar {
+            display: grid;
+            grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+            gap: 0.5rem;
+        }
+
+        .app-main {
+            padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+        }
+
+        .gym-toggle-label {
+            width: 3.5rem;
+            height: 1.75rem;
+        }
+
+        .gym-toggle-input {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
         @media (max-width: 360px) {
             header { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
             #tab-log, #tab-dashboard, #tab-profile, #tab-ai { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
             .grid-cols-2 { gap: 0.5rem; }
             #headerAppName { font-size: 0.95rem; }
             #headerDate, #patchedDate { font-size: 0.62rem; }
+            .entry-row { grid-template-columns: minmax(0, 1fr); }
+            .entry-row button { width: 100%; min-height: 2.75rem; }
+            .calendar-bar { grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem; gap: 0.35rem; }
+            #logDatePicker { padding-left: 0.4rem; padding-right: 0.4rem; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -92,27 +132,32 @@
         </header>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto pb-24 relative">
+        <main class="app-main flex-1 overflow-y-auto relative">
             
             <!-- Log Data Tab -->
             <section id="tab-log" class="tab-content active p-5">
                 <h2 class="text-2xl font-bold mb-6">Log Activity</h2>
                 
-                <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 mb-5 flex items-center gap-2">
-                    <button type="button" onclick="app.changeSelectedDate(-1)" class="px-3 py-2 rounded-lg bg-slate-700 text-slate-200">&#8249;</button>
+                <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 mb-5 calendar-bar items-center">
+                    <button type="button" aria-label="Previous day" onclick="app.changeSelectedDate(-1)" class="w-full h-11 rounded-lg bg-slate-700 text-slate-200">&#8249;</button>
                     <input type="date" id="logDatePicker" onchange="app.selectLogDate(this.value)" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-center focus:outline-none focus:border-emerald-500">
-                    <button type="button" onclick="app.changeSelectedDate(1)" class="px-3 py-2 rounded-lg bg-slate-700 text-slate-200">&#8250;</button>
+                    <button type="button" aria-label="Next day" onclick="app.changeSelectedDate(1)" class="w-full h-11 rounded-lg bg-slate-700 text-slate-200">&#8250;</button>
                 </div>
+                <div id="calendarWeekStrip" class="grid grid-cols-7 gap-1.5 mb-6" aria-label="Choose a day"></div>
 
                 <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 mb-6">
                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Food & Calories</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-1">Add Calories</label>
-                            <div class="flex gap-2">
-                                <input type="number" id="calorieInput" placeholder="e.g. 350" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors">
-                                <button onclick="app.addCalories()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-6 font-semibold transition-colors shadow-lg shadow-emerald-900/20">Add</button>
+                            <label for="mealNameInput" class="block text-sm font-medium text-slate-300 mb-1">What did you eat?</label>
+                            <input type="text" id="mealNameInput" placeholder="e.g. Rice and chicken adobo" class="w-full min-w-0 mb-2 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500">
+                            <label for="calorieInput" class="block text-sm font-medium text-slate-300 mb-1">Calories</label>
+                            <div class="entry-row">
+                                <input type="number" id="calorieInput" inputmode="numeric" min="1" placeholder="Enter calories" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors">
+                                <button type="button" onclick="app.addCalories()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-6 font-semibold transition-colors shadow-lg shadow-emerald-900/20">Add meal</button>
                             </div>
+                            <button type="button" onclick="app.estimateMealCalories()" class="w-full mt-2 py-2.5 rounded-xl border border-emerald-700 text-emerald-300 text-sm font-semibold">Estimate calories offline</button>
+                            <p id="mealEstimateNote" class="text-[10px] text-slate-500 mt-1">Uses typical portions and works without internet. Review estimates before adding.</p>
                         </div>
                         <div class="flex flex-wrap gap-2 pt-2">
                             <button onclick="app.addQuickCalories(100)" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition">+100</button>
@@ -121,15 +166,6 @@
                             <button onclick="app.resetTodayCalories()" class="px-3 py-1.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg text-xs font-medium transition ml-auto">Reset</button>
                         </div>
                         
-                        <!-- Camera Input for Meals -->
-                        <div class="mt-4 pt-4 border-t border-slate-700">
-                            <input type="file" id="mealPhoto" accept="image/*" class="hidden" onchange="app.handleImageUpload(event)">
-                            <button onclick="document.getElementById('mealPhoto').click()" class="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl py-2 font-medium transition-colors border border-slate-600">
-                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Choose Meal Photo
-                            </button>
-                            <canvas id="imageCanvas" class="hidden"></canvas>
-                        </div>
                     </div>
                 </div>
 
@@ -141,8 +177,8 @@
                             <p class="text-xs text-slate-400 mt-1">Weights, cardio, or sports.</p>
                         </div>
                         <!-- Toggle Switch -->
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="gymToggle" onchange="app.toggleGym()" class="sr-only peer">
+                        <label class="gym-toggle-label relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="gymToggle" onchange="app.toggleGym()" class="gym-toggle-input peer">
                             <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
                     </div>
@@ -150,16 +186,21 @@
                     <!-- Workout Type Entry -->
                     <div id="workoutTypeContainer" class="mt-4 hidden animate-[fadeIn_0.2s_ease-in-out]">
                         <label class="block text-xs font-medium text-slate-400 mb-1">Workout / Program</label>
-                        <div class="flex gap-2">
+                        <div class="entry-row">
                             <input type="text" id="workoutType" placeholder="e.g. Push, Legs, 5K run" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
-                            <button type="button" onclick="app.saveWorkoutType()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 font-semibold">Add</button>
+                            <button type="button" onclick="app.saveWorkoutType()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 font-semibold">Add workout</button>
                         </div>
+                        <div class="entry-row mt-2">
+                            <input type="number" id="workoutBurnInput" inputmode="numeric" min="0" placeholder="Burn estimate (optional)" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <button type="button" onclick="app.estimateWorkoutBurn()" class="bg-slate-700 hover:bg-slate-600 text-white rounded-xl px-3 font-semibold">Estimate burn</button>
+                        </div>
+                        <p id="workoutEstimateNote" class="text-[10px] text-slate-500 mt-1">Describe distance or duration for a closer offline estimate.</p>
                     </div>
                 </div>
                 
                 <!-- Simple Log History -->
                 <div class="mt-8">
-                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Recent Logs</h3>
+                     <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Food & Workout History</h3>
                      <div id="recentLogsList" class="space-y-3">
                          <!-- Populated by JS -->
                      </div>
@@ -244,10 +285,29 @@
                 </div>
 
                 <!-- AI Insights Section (Newly Added) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="min-w-0 bg-slate-800 rounded-2xl p-4 border border-emerald-500/30">
+                        <p class="text-xs text-slate-400">Calorie streak</p>
+                        <p id="calorieStreak" class="text-xl font-bold text-emerald-400 mt-1">0 days</p>
+                        <p class="text-[10px] text-slate-500">Target reached</p>
+                    </div>
+                    <div class="min-w-0 bg-slate-800 rounded-2xl p-4 border border-sky-500/30">
+                        <p class="text-xs text-slate-400">Gym streak</p>
+                        <p id="gymStreak" class="text-xl font-bold text-sky-400 mt-1">0 days</p>
+                        <p class="text-[10px] text-slate-500">Workout logged</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700/50">
+                    <h3 class="text-sm font-semibold text-slate-300 mb-3">Today's Meals & Workouts</h3>
+                    <div id="todayHistoryList" class="space-y-2"></div>
+                </div>
+
+                <!-- AI Insights Section (Newly Added) -->
                 <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700/50">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-sm font-semibold text-slate-300">AI Insights</h3>
-                        <button onclick="app.generateAIInsights()" class="hidden"></button>
+                        <button onclick="app.switchTab('ai')" class="text-xs text-emerald-400 font-semibold">Open coach</button>
                     </div>
                     <div id="homeAIInsights" class="space-y-3">
                         <!-- Insights will be populated here -->
@@ -267,20 +327,22 @@
             </section>
 
             <!-- AI Coach Tab -->
-            <section id="tab-ai" class="tab-content p-5 flex flex-col min-h-[80vh]">
+            <section id="tab-ai" class="tab-content p-5 space-y-4">
                 <div class="text-center mb-6">
                     <div class="w-20 h-20 mx-auto bg-slate-800 rounded-full flex items-center justify-center mb-3 ai-avatar border-2 border-emerald-500/50">
                         <svg class="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                     </div>
-                    <h2 class="text-2xl font-bold">On-Device AI Coach</h2>
-                    <p class="text-xs text-slate-400 mt-1">Analyzing your local data securely.</p>
+                    <h2 class="text-2xl font-bold">AI Coach</h2>
+                    <p class="text-xs text-slate-400 mt-1">Food, workout, and progress estimates run on this device, including offline.</p>
                 </div>
 
-                <div class="flex-1 bg-slate-800/50 rounded-2xl p-4 border border-slate-700 overflow-y-auto space-y-4" id="aiChatBox">
-                    <!-- AI messages populate here -->
+                <button type="button" onclick="app.generateAIInsights()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 px-4 font-semibold">Run Analysis</button>
+                <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700/60">
+                    <h3 class="text-sm font-semibold text-slate-300 mb-3">Your Insights</h3>
+                    <div id="aiCoachInsights" class="space-y-3">
+                        <p class="text-xs text-slate-500">Run an analysis to see your progress insights.</p>
+                    </div>
                 </div>
-                
-                <button onclick="app.generateAIInsights()" class="hidden"></button>
             </section>
 
             <!-- Profile Tab -->
@@ -397,6 +459,10 @@
                     <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     <span class="text-[10px] font-medium">Log</span>
                 </button>
+                <button onclick="app.switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    <span class="text-[10px] font-medium">Coach</span>
+                </button>
                 <button onclick="app.switchTab('profile')" id="nav-profile" class="nav-btn flex flex-col items-center justify-center w-16 h-full text-slate-500 hover:text-slate-300 transition-colors">
                     <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     <span class="text-[10px] font-medium">Profile</span>
@@ -434,6 +500,7 @@
                 document.getElementById('patchedDate').innerText = 'Patched 22-11-2026';
 
                 this.loadData();
+                localStorage.removeItem('pc_qwen_api_key');
                 this.data.selectedDate = this.getTodayString();
 
                 if (!this.data.profile) {
@@ -446,6 +513,7 @@
                     this.renderRecentLogs();
                     // Generate a quick tip for dashboard
                     this.generateQuickTip();
+                    this.generateAIInsights();
                 }
             },
 
@@ -457,6 +525,20 @@
                     if (profileData) this.data.profile = JSON.parse(profileData);
                     if (logsData) this.data.logs = JSON.parse(logsData);
                     if (weightData) this.data.weightHistory = JSON.parse(weightData);
+                    Object.entries(this.data.logs).forEach(([date, log]) => {
+                        if (!Array.isArray(log.foodEntries)) {
+                            log.foodEntries = Number(log.calories) > 0
+                                ? [{ id: `legacy-food-${date}`, name: 'Previously logged food', calories: Number(log.calories) }]
+                                : [];
+                        }
+                        if (!Array.isArray(log.workouts)) {
+                            log.workouts = log.gym
+                                ? [{ id: `legacy-workout-${date}`, name: log.workoutType || 'Gym session' }]
+                                : [];
+                        }
+                        log.calories = log.foodEntries.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0);
+                        log.gym = log.workouts.length > 0 || Boolean(log.gym);
+                    });
                 } catch (e) {
                     console.error("Error loading local storage data", e);
                 }
@@ -471,6 +553,10 @@
             getTodayString() {
                 const tzOffset = (new Date()).getTimezoneOffset() * 60000;
                 return (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+            },
+
+            getDateKey(date) {
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             },
 
             // Navigation
@@ -618,10 +704,221 @@
             initTodayLog(dateString = this.data.selectedDate || this.getTodayString()) {
                 const date = dateString;
                 if (!this.data.logs[date]) {
-                    this.data.logs[date] = { calories: 0, gym: false, workoutType: '', mealImages: [] };
+                    this.data.logs[date] = { calories: 0, gym: false, workoutType: '', foodEntries: [], workouts: [] };
                 }
-                if (!this.data.logs[date].mealImages) this.data.logs[date].mealImages = [];
+                if (!Array.isArray(this.data.logs[date].foodEntries)) this.data.logs[date].foodEntries = [];
+                if (!Array.isArray(this.data.logs[date].workouts)) this.data.logs[date].workouts = [];
                 return date;
+            },
+
+            recalculateCalories(date) {
+                const log = this.data.logs[date];
+                log.calories = log.foodEntries.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0);
+            },
+
+            estimateMealCalories() {
+                const description = document.getElementById('mealNameInput').value.trim();
+                if (!description) {
+                    this.showMessageBox('Describe the food and portion first.');
+                    return;
+                }
+                const foods = [
+                    { terms: /\b(?:white|brown|cooked)?\s*rice\b/i, unitCalories: 205, unit: 'cup', quantity: /([\d.]+)\s*cups?\s*(?:of\s+)?(?:white\s+|brown\s+)?rice\b/i },
+                    { terms: /\badobo\b/i, unitCalories: 280, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?|pieces?)?\s*(?:of\s+)?(?:chicken\s+|pork\s+)?adobo\b/i },
+                    { terms: /\beggs?\b/i, unitCalories: 78, unit: 'piece', quantity: /([\d.]+)\s*(?:eggs?)\b/i },
+                    { terms: /\b(?:chicken|breast)\b/i, unitCalories: 240, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?|pieces?)?\s*(?:of\s+)?chicken\b/i, skip: /adobo/i },
+                    { terms: /\bpork\b/i, unitCalories: 290, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?|pieces?)?\s*(?:of\s+)?pork\b/i, skip: /adobo/i },
+                    { terms: /\bbeef\b/i, unitCalories: 250, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?|pieces?)?\s*(?:of\s+)?beef\b/i },
+                    { terms: /\bfish\b/i, unitCalories: 180, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?|pieces?)?\s*(?:of\s+)?fish\b/i },
+                    { terms: /\bbanana\b/i, unitCalories: 105, unit: 'piece', quantity: /([\d.]+)\s*(?:pieces?)?\s*(?:of\s+)?banana\b/i },
+                    { terms: /\bapple\b/i, unitCalories: 95, unit: 'piece', quantity: /([\d.]+)\s*(?:pieces?)?\s*(?:of\s+)?apple\b/i },
+                    { terms: /\bbread\b/i, unitCalories: 80, unit: 'slice', quantity: /([\d.]+)\s*slices?\s*(?:of\s+)?bread\b/i },
+                    { terms: /\boatmeal|oats\b/i, unitCalories: 154, unit: 'cup', quantity: /([\d.]+)\s*cups?\s*(?:of\s+)?(?:oatmeal|oats)\b/i },
+                    { terms: /\b(?:pasta|noodles?)\b/i, unitCalories: 220, unit: 'cup', quantity: /([\d.]+)\s*cups?\s*(?:of\s+)?(?:pasta|noodles?)\b/i },
+                    { terms: /\bpotato\b/i, unitCalories: 160, unit: 'piece', quantity: /([\d.]+)\s*(?:pieces?)?\s*(?:of\s+)?potato\b/i },
+                    { terms: /\b(?:vegetables?|broccoli|carrots?)\b/i, unitCalories: 70, unit: 'cup', quantity: /([\d.]+)\s*cups?\s*(?:of\s+)?(?:vegetables?|broccoli|carrots?)\b/i },
+                    { terms: /\bmilk\b/i, unitCalories: 125, unit: 'cup', quantity: /([\d.]+)\s*cups?\s*(?:of\s+)?milk\b/i },
+                    { terms: /\bburger\b/i, unitCalories: 500, unit: 'piece', quantity: /([\d.]+)\s*(?:burgers?)\b/i },
+                    { terms: /\bpizza\b/i, unitCalories: 285, unit: 'slice', quantity: /([\d.]+)\s*slices?\s*(?:of\s+)?pizza\b/i },
+                    { terms: /\bsandwich\b/i, unitCalories: 350, unit: 'piece', quantity: /([\d.]+)\s*(?:sandwiches?)\b/i },
+                    { terms: /\bsalad\b/i, unitCalories: 150, unit: 'serving', quantity: /([\d.]+)\s*(?:servings?)?\s*(?:of\s+)?salad\b/i }
+                ];
+                let calories = 0;
+                const matched = [];
+                foods.forEach(food => {
+                    if (!food.terms.test(description) || (food.skip && food.skip.test(description))) return;
+                    const quantity = description.match(food.quantity);
+                    const count = quantity ? Math.max(0.5, Number(quantity[1])) : 1;
+                    const itemCalories = Math.round(food.unitCalories * count);
+                    calories += itemCalories;
+                    matched.push(`${count} ${food.unit}${count === 1 ? '' : 's'} ${Math.round(itemCalories)} kcal`);
+                });
+                if (!matched.length) {
+                    this.showMessageBox('I could not match common foods in that description. Add the calories manually for a better result.');
+                    return;
+                }
+                document.getElementById('calorieInput').value = String(calories);
+                document.getElementById('mealEstimateNote').textContent = `Offline estimate: about ${calories} kcal (${matched.join(' + ')}). Review and adjust.`;
+            },
+
+            estimateWorkoutBurn() {
+                const description = document.getElementById('workoutType').value.trim().toLowerCase();
+                const weight = Number(this.data.profile?.weight);
+                if (!description) {
+                    this.showMessageBox('Describe the workout, distance, or duration first.');
+                    return;
+                }
+                if (!weight) {
+                    this.showMessageBox('Add your weight in Profile to estimate calories burned.');
+                    return;
+                }
+
+                let calories = 0;
+                const distance = description.match(/(\d+(?:\.\d+)?)\s*(?:km|kilometers?|k\b|miles?|mi\b)/i);
+                if (distance && /\b(run|running|jog|jogging|walk|walking)\b/.test(description)) {
+                    const amount = Number(distance[1]);
+                    const unit = distance[0].toLowerCase();
+                    const km = /mile|\bmi\b/.test(unit) ? amount * 1.609 : amount;
+                    const isRun = /\b(run|running|jog|jogging)\b/.test(description);
+                    const isWalk = /\b(walk|walking)\b/.test(description);
+                    const factor = isRun && isWalk ? 0.8 : isRun ? 1 : 0.55;
+                    calories += km * weight * factor;
+                }
+
+                const strength = /\b(chest|biceps?|triceps?|shoulders?|back|legs?|weights?|strength|lifting|push|pull|workout)\b/.test(description);
+                if (strength) {
+                    const duration = description.match(/(\d+(?:\.\d+)?)\s*(?:min|minutes?)\b/i);
+                    const minutes = duration ? Number(duration[1]) : 30;
+                    const met = 5;
+                    calories += met * 3.5 * weight / 200 * minutes;
+                }
+
+                if (!calories) {
+                    this.showMessageBox('I could not identify an exercise. Try “5k run”, “5k walk”, or “chest and biceps 30 min”.');
+                    return;
+                }
+                calories = Math.max(1, Math.round(calories));
+                document.getElementById('workoutBurnInput').value = String(calories);
+                document.getElementById('workoutEstimateNote').textContent = `Offline estimate: about ${calories} kcal burned. Actual burn varies with pace, effort, and rest.`;
+            },
+
+            editFoodEntry(date, id) {
+                const entry = this.data.logs[date].foodEntries.find(item => item.id === id);
+                if (!entry) return;
+                this.showEntryEditor('Edit meal', entry.name, entry.calories, (name, calories) => {
+                    if (!name || !Number.isFinite(calories) || calories <= 0) {
+                        this.showMessageBox('Enter a meal name and calories greater than zero.');
+                        return false;
+                    }
+                    entry.name = name;
+                    entry.calories = Math.round(calories);
+                    this.recalculateCalories(date);
+                    this.saveData();
+                    this.renderRecentLogs();
+                    this.updateDashboard();
+                    return true;
+                });
+            },
+
+            deleteFoodEntry(date, id) {
+                const log = this.data.logs[date];
+                log.foodEntries = log.foodEntries.filter(entry => entry.id !== id);
+                this.recalculateCalories(date);
+                this.saveData();
+                this.renderRecentLogs();
+                this.updateDashboard();
+            },
+
+            editWorkout(date, id) {
+                const workout = this.data.logs[date].workouts.find(item => item.id === id);
+                if (!workout) return;
+                this.showEntryEditor('Edit workout', workout.name, null, name => {
+                    if (!name) {
+                        this.showMessageBox('Enter a workout or program name.');
+                        return false;
+                    }
+                    workout.name = name;
+                    this.data.logs[date].workoutType = name;
+                    this.saveData();
+                    this.renderRecentLogs();
+                    this.updateDashboard();
+                    return true;
+                });
+            },
+
+            showEntryEditor(title, name, calories, onSave) {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4';
+                const dialog = document.createElement('form');
+                dialog.className = 'w-full max-w-sm bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-4';
+                dialog.setAttribute('role', 'dialog');
+                dialog.setAttribute('aria-modal', 'true');
+                const heading = document.createElement('h2');
+                heading.className = 'text-lg font-bold text-white';
+                heading.textContent = title;
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = name || '';
+                nameInput.maxLength = 120;
+                nameInput.className = 'w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-3 text-white';
+                nameInput.setAttribute('aria-label', 'Description');
+                dialog.append(heading, nameInput);
+
+                let calorieInput = null;
+                if (calories !== null) {
+                    calorieInput = document.createElement('input');
+                    calorieInput.type = 'number';
+                    calorieInput.inputMode = 'numeric';
+                    calorieInput.min = '1';
+                    calorieInput.value = String(calories);
+                    calorieInput.className = 'w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-3 text-white';
+                    calorieInput.setAttribute('aria-label', 'Calories');
+                    dialog.appendChild(calorieInput);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'grid grid-cols-2 gap-2';
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'min-h-11 rounded-xl bg-slate-700 text-slate-100 font-semibold';
+                cancel.textContent = 'Cancel';
+                cancel.onclick = () => overlay.remove();
+                const save = document.createElement('button');
+                save.type = 'submit';
+                save.className = 'min-h-11 rounded-xl bg-emerald-600 text-white font-semibold';
+                save.textContent = 'Save';
+                actions.append(cancel, save);
+                dialog.appendChild(actions);
+                dialog.onsubmit = event => {
+                    event.preventDefault();
+                    const saved = onSave(nameInput.value.trim(), calorieInput ? Number(calorieInput.value) : null);
+                    if (saved) overlay.remove();
+                };
+                overlay.addEventListener('click', event => {
+                    if (event.target === overlay) overlay.remove();
+                });
+                overlay.appendChild(dialog);
+                document.body.appendChild(overlay);
+                nameInput.focus();
+            },
+
+            deleteWorkout(date, id) {
+                const log = this.data.logs[date];
+                log.workouts = log.workouts.filter(workout => workout.id !== id);
+                log.gym = log.workouts.length > 0;
+                log.workoutType = log.workouts.length ? log.workouts[log.workouts.length - 1].name : '';
+                this.saveData();
+                this.updateLogUI();
+                this.renderRecentLogs();
+                this.updateDashboard();
+            },
+
+            deleteMealImage(date, index) {
+                const images = this.data.logs[date]?.mealImages;
+                if (!images || !images[index]) return;
+                images.splice(index, 1);
+                this.saveData();
+                this.renderRecentLogs();
             },
 
             addCalories() {
@@ -631,12 +928,13 @@
                     this.showMessageBox('Enter a calorie amount greater than zero.');
                     return;
                 }
-
                 const date = this.initTodayLog();
-                this.data.logs[date].calories = (Number(this.data.logs[date].calories) || 0) + cals;
+                const name = document.getElementById('mealNameInput').value.trim() || 'Meal';
+                this.data.logs[date].foodEntries.push({ id: crypto.randomUUID(), name, calories: cals });
+                this.recalculateCalories(date);
                 this.saveData();
-
                 input.value = '';
+                document.getElementById('mealNameInput').value = '';
                 this.updateLogUI();
                 this.renderRecentLogs();
                 this.updateDashboard();
@@ -644,37 +942,177 @@
 
             addQuickCalories(amount) {
                 const date = this.initTodayLog();
-                this.data.logs[date].calories = (Number(this.data.logs[date].calories) || 0) + amount;
+                this.data.logs[date].foodEntries.push({ id: crypto.randomUUID(), name: 'Quick add', calories: amount });
+                this.recalculateCalories(date);
                 this.saveData();
-                this.updateLogUI();
                 this.renderRecentLogs();
                 this.updateDashboard();
             },
-            
+
             resetTodayCalories() {
+                if (!confirm('Delete all meal entries for this day?')) return;
                 const date = this.initTodayLog();
-                this.data.logs[date].calories = 0;
+                this.data.logs[date].foodEntries = [];
+                this.recalculateCalories(date);
                 this.saveData();
-                this.updateLogUI();
                 this.renderRecentLogs();
                 this.updateDashboard();
             },
 
             toggleGym() {
-                const toggle = document.getElementById('gymToggle');
                 const date = this.initTodayLog();
-                this.data.logs[date].gym = toggle.checked;
-                if (!toggle.checked) {
-                    this.data.logs[date].workoutType = '';
-                    document.getElementById('workoutType').value = '';
+                const log = this.data.logs[date];
+                log.gym = document.getElementById('gymToggle').checked;
+                if (!log.gym) {
+                    log.workouts = [];
+                    log.workoutType = '';
                 }
                 this.saveData();
                 this.updateLogUI();
                 this.renderRecentLogs();
                 this.updateDashboard();
             },
-            
+
             saveWorkoutType() {
+                const input = document.getElementById('workoutType');
+                const name = input.value.trim();
+                if (!name) {
+                    this.showMessageBox('Enter a workout or program name.');
+                    return;
+                }
+                const date = this.initTodayLog();
+                const log = this.data.logs[date];
+                const burnValue = Number(document.getElementById('workoutBurnInput').value);
+                const workout = { id: crypto.randomUUID(), name };
+                if (Number.isFinite(burnValue) && burnValue > 0) workout.caloriesBurned = Math.round(burnValue);
+                log.workouts.push(workout);
+                log.gym = true;
+                log.workoutType = name;
+                input.value = '';
+                document.getElementById('workoutBurnInput').value = '';
+                this.saveData();
+                this.updateLogUI();
+                this.renderRecentLogs();
+                this.updateDashboard();
+            },
+
+            updateLogUI() {
+                const date = this.data.selectedDate || this.getTodayString();
+                this.data.selectedDate = date;
+                const logDate = this.initTodayLog(date);
+                const log = this.data.logs[logDate];
+                const picker = document.getElementById('logDatePicker');
+                if (picker) picker.value = date;
+                document.getElementById('gymToggle').checked = log.gym;
+                document.getElementById('workoutTypeContainer').classList.toggle('hidden', !log.gym);
+                document.getElementById('calorieInput').value = '';
+                document.getElementById('workoutBurnInput').value = '';
+                this.renderCalendarStrip();
+            },
+
+            renderCalendarStrip() {
+                const strip = document.getElementById('calendarWeekStrip');
+                if (!strip) return;
+                strip.innerHTML = '';
+                const selected = new Date(`${this.data.selectedDate}T00:00:00`);
+                const mondayOffset = (selected.getDay() + 6) % 7;
+                const start = new Date(selected);
+                start.setDate(selected.getDate() - mondayOffset);
+
+                for (let index = 0; index < 7; index++) {
+                    const date = new Date(start);
+                    date.setDate(start.getDate() + index);
+                    const key = this.getDateKey(date);
+                    const dayLog = this.data.logs[key];
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.setAttribute('aria-label', date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+                    button.className = `min-w-0 min-h-[3.75rem] rounded-xl border flex flex-col items-center justify-center gap-0.5 ${key === this.data.selectedDate ? 'bg-emerald-500 border-emerald-400 text-slate-950' : 'bg-slate-800 border-slate-700 text-slate-300'}`;
+                    const weekday = document.createElement('span');
+                    weekday.className = 'text-[9px] uppercase';
+                    weekday.textContent = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    const day = document.createElement('span');
+                    day.className = 'text-sm font-bold';
+                    day.textContent = String(date.getDate());
+                    button.append(weekday, day);
+                    if (dayLog && (dayLog.calories > 0 || dayLog.gym)) {
+                        const dot = document.createElement('span');
+                        dot.className = `w-1 h-1 rounded-full ${key === this.data.selectedDate ? 'bg-slate-900' : 'bg-emerald-400'}`;
+                        button.appendChild(dot);
+                    }
+                    button.onclick = () => this.selectLogDate(key);
+                    strip.appendChild(button);
+                }
+            },
+
+            renderRecentLogs() {
+                const container = document.getElementById('recentLogsList');
+                container.innerHTML = '';
+                const date = this.data.selectedDate || this.getTodayString();
+                const log = this.data.logs[date] || { foodEntries: [], workouts: [] };
+                const appendEntry = (title, detail, onEdit, onDelete) => {
+                    const row = document.createElement('div');
+                    row.className = 'min-w-0 flex flex-wrap items-center gap-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800';
+                    const text = document.createElement('div');
+                    text.className = 'flex-1 min-w-0';
+                    const name = document.createElement('p');
+                    name.className = 'text-sm font-medium text-slate-200 break-words';
+                    name.textContent = title;
+                    const value = document.createElement('p');
+                    value.className = 'text-xs text-slate-400 mt-1';
+                    value.textContent = detail;
+                    text.append(name, value);
+                    const actions = document.createElement('div');
+                    actions.className = 'flex gap-2 shrink-0';
+                    [['Edit', 'bg-slate-700 text-slate-200', onEdit], ['Delete', 'bg-red-950/60 text-red-300', onDelete]].forEach(([label, classes, action]) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = `px-3 py-2 text-xs rounded-lg ${classes}`;
+                        button.textContent = label;
+                        button.onclick = action;
+                        actions.appendChild(button);
+                    });
+                    row.append(text, actions);
+                    container.appendChild(row);
+                };
+
+                (log.foodEntries || []).forEach(entry => appendEntry(
+                    entry.name || 'Meal', `${entry.calories} kcal`,
+                    () => this.editFoodEntry(date, entry.id),
+                    () => this.deleteFoodEntry(date, entry.id)
+                ));
+                (log.workouts || []).forEach(workout => appendEntry(
+                    workout.name || 'Gym session', workout.caloriesBurned ? `Workout · about ${workout.caloriesBurned} kcal burned` : 'Workout',
+                    () => this.editWorkout(date, workout.id),
+                    () => this.deleteWorkout(date, workout.id)
+                ));
+                (log.mealImages || []).forEach((image, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex flex-wrap items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800';
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = image;
+                    thumbnail.alt = 'Previously saved meal';
+                    thumbnail.className = 'w-12 h-12 rounded-lg object-cover';
+                    const label = document.createElement('span');
+                    label.className = 'flex-1 min-w-0 text-sm text-slate-300';
+                    label.textContent = 'Previously saved meal photo';
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'px-3 py-2 text-xs rounded-lg bg-red-950/60 text-red-300';
+                    remove.textContent = 'Delete';
+                    remove.onclick = () => this.deleteMealImage(date, index);
+                    row.append(thumbnail, label, remove);
+                    container.appendChild(row);
+                });
+                if (!container.childElementCount) {
+                    const empty = document.createElement('p');
+                    empty.className = 'text-xs text-slate-500 italic';
+                    empty.textContent = 'No meals or workouts logged for this day.';
+                    container.appendChild(empty);
+                }
+            },
+
+            legacySaveWorkoutType() {
                 const type = document.getElementById('workoutType').value.trim();
                 if (!type) {
                     this.showMessageBox('Enter a workout or program name.');
@@ -682,8 +1120,10 @@
                 }
                 const date = this.initTodayLog();
                 this.data.logs[date].gym = true;
+                this.data.logs[date].workouts.push({ id: crypto.randomUUID(), name: type });
                 this.data.logs[date].workoutType = type;
                 document.getElementById('gymToggle').checked = true;
+                document.getElementById('workoutType').value = '';
                 this.saveData();
                 this.updateLogUI();
                 this.renderRecentLogs();
@@ -691,7 +1131,7 @@
                 this.showMessageBox('Workout added to ' + date + '.');
             },
             
-            handleImageUpload(e) {
+            legacyHandleImageUpload(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 
@@ -727,7 +1167,7 @@
                 reader.readAsDataURL(file);
             },
 
-            updateLogUI() {
+            legacyUpdateLogUI() {
                 const date = this.data.selectedDate || this.getTodayString();
                 this.data.selectedDate = date;
                 const log = this.data.logs[date] || { calories: 0, gym: false, workoutType: '' };
@@ -747,7 +1187,7 @@
                 }
             },
 
-            renderRecentLogs() {
+            legacyRenderRecentLogs() {
                 const container = document.getElementById('recentLogsList');
                 container.innerHTML = '';
                 
@@ -882,14 +1322,73 @@
                         .reverse()
                         .slice(0, 5);
 
-                    workoutList.innerHTML = recentGymLogs.length
-                        ? recentGymLogs.map(date => {
-                            const log = this.data.logs[date];
-                            const label = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            return `<div class="flex justify-between items-center rounded-xl bg-slate-900/60 border border-slate-700/60 px-3 py-2"><span class="text-sm text-slate-200 truncate pr-3">${log.workoutType || 'Gym workout'}</span><span class="text-xs text-slate-500 shrink-0">${label}</span></div>`;
-                        }).join('')
-                        : '<p class="text-xs text-slate-500 italic">No gym programs logged yet.</p>';
+                    workoutList.innerHTML = '';
+                    if (!recentGymLogs.length) {
+                        const empty = document.createElement('p');
+                        empty.className = 'text-xs text-slate-500 italic';
+                        empty.textContent = 'No gym programs logged yet.';
+                        workoutList.appendChild(empty);
+                    }
+                    recentGymLogs.forEach(date => {
+                        const log = this.data.logs[date];
+                        const label = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const row = document.createElement('div');
+                        row.className = 'flex justify-between items-center rounded-xl bg-slate-900/60 border border-slate-700/60 px-3 py-2 gap-3';
+                        const title = document.createElement('span');
+                        title.className = 'text-sm text-slate-200 truncate';
+                        title.textContent = log.workouts?.map(workout => workout.name).join(', ') || log.workoutType || 'Gym workout';
+                        const dateLabel = document.createElement('span');
+                        dateLabel.className = 'text-xs text-slate-500 shrink-0';
+                        dateLabel.textContent = label;
+                        row.append(title, dateLabel);
+                        workoutList.appendChild(row);
+                    });
                 }
+
+                    const todayHistory = document.getElementById('todayHistoryList');
+                    if (todayHistory) {
+                        todayHistory.innerHTML = '';
+                        const entries = [
+                            ...(log.foodEntries || []).map(entry => ({ name: entry.name, detail: `${entry.calories} kcal`, kind: 'Meal' })),
+                            ...(log.workouts || []).map(workout => ({
+                                name: workout.name,
+                                detail: workout.caloriesBurned ? `About ${workout.caloriesBurned} kcal burned` : 'Workout',
+                                kind: 'Gym'
+                            }))
+                        ];
+                        if (!entries.length) {
+                            const empty = document.createElement('p');
+                            empty.className = 'text-xs text-slate-500 italic';
+                            empty.textContent = 'Nothing logged today yet.';
+                            todayHistory.appendChild(empty);
+                        }
+                        entries.forEach(entry => {
+                            const row = document.createElement('div');
+                            row.className = 'flex justify-between gap-3 items-center border-b border-slate-700/60 last:border-0 py-2';
+                            const label = document.createElement('span');
+                            label.className = 'min-w-0 text-sm text-slate-200 break-words';
+                            label.textContent = `${entry.kind}: ${entry.name || entry.kind}`;
+                            const detail = document.createElement('span');
+                            detail.className = 'shrink-0 text-xs text-slate-400';
+                            detail.textContent = entry.detail;
+                            row.append(label, detail);
+                            todayHistory.appendChild(row);
+                        });
+                    }
+
+                    const streak = predicate => {
+                        let count = 0;
+                        const cursor = new Date(`${today}T00:00:00`);
+                        while (predicate(this.data.logs[this.getDateKey(cursor)])) {
+                            count++;
+                            cursor.setDate(cursor.getDate() - 1);
+                        }
+                        return count;
+                    };
+                    const calorieStreak = streak(day => day && day.calories > 0 && day.calories <= target);
+                    const gymStreak = streak(day => day && day.gym);
+                    document.getElementById('calorieStreak').textContent = `${calorieStreak} ${calorieStreak === 1 ? 'day' : 'days'}`;
+                    document.getElementById('gymStreak').textContent = `${gymStreak} ${gymStreak === 1 ? 'day' : 'days'}`;
             },
 
             // --- AI Coach (Rule-Based Engine) ---
@@ -927,7 +1426,9 @@
                 const tzOffset = now.getTimezoneOffset() * 60000;
                 
                 for (let i = 0; i < days; i++) {
-                    const checkDate = new Date(Date.now() - tzOffset - (i * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                    const checkDateValue = new Date();
+                    checkDateValue.setDate(checkDateValue.getDate() - i);
+                    const checkDate = this.getDateKey(checkDateValue);
                     const log = this.data.logs[checkDate];
                     
                     if (log) {
@@ -937,7 +1438,8 @@
                         }
                         if (log.gym) {
                             gymDays++;
-                            if (log.workoutType === 'Legs' || log.workoutType === 'Full Body') {
+                            const workoutNames = (log.workouts || []).map(workout => workout.name).join(' ').toLowerCase();
+                            if (/\blegs?\b|\blower body\b/.test(workoutNames) || /\blegs?\b|\blower body\b/.test((log.workoutType || '').toLowerCase())) {
                                 hitLegs = true;
                             }
                         }
@@ -949,64 +1451,48 @@
             },
 
             generateAIInsights() {
-                const chatBox = document.getElementById('homeAIInsights') || document.getElementById('aiChatBox');
-                chatBox.innerHTML = ''; // Clear previous
+                const stats = this.analyzePastDays(7);
+                const profile = this.data.profile;
+                const insights = [];
 
-                this.addChatBubble('system', "Analyzing your local data...");
-
-                setTimeout(() => {
-                    const stats = this.analyzePastDays(7);
-                    const p = this.data.profile;
-                    
-                    let insights = [];
-
-                    // Base Check
-                    if (stats.daysLogged === 0) {
-                        insights.push("I don't have enough data for the past 7 days. Start logging your meals and workouts so I can guide you!");
+                if (!profile || stats.daysLogged === 0) {
+                    insights.push('Start logging meals and workouts to build a useful 7-day progress summary.');
+                } else {
+                    insights.push(`You logged food on ${stats.daysLogged} of the last 7 days and averaged ${stats.avgCals} kcal on logged days.`);
+                    const difference = stats.avgCals - profile.targetCalories;
+                    if (Math.abs(difference) <= 150) {
+                        insights.push(`Your average is close to your ${profile.targetCalories} kcal daily target.`);
+                    } else if (difference > 150) {
+                        insights.push(`Your average is about ${difference} kcal above your daily target. Check portions and meal entries for accuracy.`);
+                    } else if (stats.avgCals < profile.bmr) {
+                        insights.push(`Your logged average is below your estimated BMR of ${profile.bmr} kcal. Calorie estimates can be incomplete, so review your entries and seek professional advice before making major changes.`);
                     } else {
-                        // Volume Check
-                        if (stats.daysLogged < 3) {
-                            insights.push(`You've only logged ${stats.daysLogged} day(s) this week. Consistency in tracking is key to seeing results!`);
-                        }
-
-                        // Calorie Analysis
-                        const calDiff = stats.avgCals - p.targetCalories;
-                        if (stats.avgCals > 0) {
-                            if (stats.avgCals < p.bmr - 200) {
-                                insights.push(`⚠️ **Warning:** Your 7-day average intake (${stats.avgCals} kcal) is significantly below your Basal Metabolic Rate (${p.bmr} kcal). This can lead to muscle loss and metabolic slowdown. Please eat more!`);
-                            } else if (Math.abs(calDiff) <= 150) {
-                                insights.push(`🎯 **Spot On:** Your average intake (${stats.avgCals} kcal) is perfectly in line with your target (${p.targetCalories} kcal). Excellent discipline!`);
-                            } else if (calDiff > 150) {
-                                insights.push(`📈 **Trend:** You're averaging ${stats.avgCals} kcal/day, which is roughly ${calDiff} kcal over your deficit target. Consider reducing portion sizes slightly or swapping out high-calorie snacks.`);
-                            }
-                        }
-
-                        // Gym Analysis
-                        if (stats.gymDays >= 4) {
-                            insights.push(`💪 **Beast Mode:** You hit the gym ${stats.gymDays} times this week! Make sure you are prioritizing protein and getting enough sleep for recovery.`);
-                        } else if (stats.gymDays > 0) {
-                            insights.push(`🏃 **Active:** Good job getting ${stats.gymDays} workout(s) in. Try aiming for 3-4 days a week for optimal cardiovascular and strength benefits.`);
-                        } else {
-                            insights.push(`🛋️ **Sedentary Week:** I noticed no gym days logged recently. Even a 20-minute home workout or a brisk walk counts!`);
-                        }
-                        
-                        // Leg Day AI Check
-                        const dayOfWeek = new Date().getDay();
-                        if (!stats.hitLegs && stats.daysLogged > 0 && (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0)) {
-                            insights.push(`🦵 **You haven't hit legs this week!** Try to fit a leg session in before the week ends. Remember, skipping leg day can lead to muscle imbalances!`);
-                        }
+                        insights.push(`Your average is about ${Math.abs(difference)} kcal below your daily target.`);
                     }
 
-                    // Render insights one by one
-                    chatBox.innerHTML = ''; // Clear 'analyzing' message
-                    insights.forEach((text, index) => {
-                        setTimeout(() => {
-                            this.addChatBubble('ai', text);
-                            chatBox.scrollTop = chatBox.scrollHeight;
-                        }, index * 800); // Stagger message appearance
-                    });
+                    insights.push(`You logged ${stats.gymDays} workout day${stats.gymDays === 1 ? '' : 's'} in the last 7 days.`);
+                    if (!stats.hitLegs && [5, 6, 0].includes(new Date().getDay())) {
+                        insights.push('No leg-focused session is logged this week yet. Add one if it fits your training plan.');
+                    }
+                }
 
-                }, 1000); // Fake processing delay for UX
+                ['homeAIInsights', 'aiCoachInsights'].forEach(id => {
+                    const container = document.getElementById(id);
+                    if (!container) return;
+                    container.innerHTML = '';
+                    insights.forEach((text, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'flex gap-3 bg-slate-900/60 border border-slate-700/60 rounded-xl p-3';
+                        const number = document.createElement('span');
+                        number.className = 'text-xs font-bold text-emerald-400';
+                        number.textContent = String(index + 1).padStart(2, '0');
+                        const content = document.createElement('p');
+                        content.className = 'min-w-0 text-sm text-slate-300 leading-relaxed';
+                        content.textContent = text;
+                        item.append(number, content);
+                        container.appendChild(item);
+                    });
+                });
             },
 
             addChatBubble(sender, text) {
@@ -1085,6 +1571,23 @@
                     try {
                         const importedData = JSON.parse(e.target.result);
                         this.data = importedData;
+                        this.data.logs ||= {};
+                        this.data.weightHistory ||= [];
+                        this.data.selectedDate = this.getTodayString();
+                        Object.entries(this.data.logs).forEach(([date, log]) => {
+                            if (!Array.isArray(log.foodEntries)) {
+                                log.foodEntries = Number(log.calories) > 0
+                                    ? [{ id: `legacy-food-${date}`, name: 'Previously logged food', calories: Number(log.calories) }]
+                                    : [];
+                            }
+                            if (!Array.isArray(log.workouts)) {
+                                log.workouts = log.gym
+                                    ? [{ id: `legacy-workout-${date}`, name: log.workoutType || 'Gym session' }]
+                                    : [];
+                            }
+                            log.calories = log.foodEntries.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0);
+                            log.gym = log.workouts.length > 0 || Boolean(log.gym);
+                        });
                         this.saveData();
                         this.showMessageBox("Data imported successfully! Please check your profile and logs.");
                         
@@ -1101,10 +1604,10 @@
             // Date Navigation for Logs
             changeSelectedDate(offset) {
                 const picker = document.getElementById('logDatePicker');
-                const currentDate = new Date(picker.value);
+                const currentDate = new Date(`${picker.value}T00:00:00`);
                 currentDate.setDate(currentDate.getDate() + offset);
                 
-                const newDateString = currentDate.toISOString().split('T')[0];
+                const newDateString = this.getDateKey(currentDate);
                 picker.value = newDateString;
                 this.selectLogDate(newDateString);
             },
