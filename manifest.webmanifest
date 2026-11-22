@@ -2,6 +2,7 @@
   "name": "PocketCoach AI",
   "short_name": "PocketCoach",
   "description": "Private, local fitness and calorie tracking",
+  "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +11,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

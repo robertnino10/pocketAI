@@ -1,56 +1,64 @@
-const CACHE_NAME = 'pocketcoach-offline-v2';
-const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'pocketcoach-offline-v3';
+const APP_FILES = ['./index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(APP_FILES.map(url => cache.add(url)));
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(key => key !== CACHE_NAME)
+        .map(key => caches.delete(key))
+    );
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
-  const isNavigation = event.request.mode === 'navigate';
-
-  if (isNavigation) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
-          }
-          return response;
-        })
-        .catch(async () => {
-          return (await caches.match('./index.html')) ||
-                 (await caches.match('./')) ||
-                 new Response('PocketCoach is unavailable offline.', { status: 503 });
-        })
-    );
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(event.request);
+        if (response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put('./index.html', response.clone());
+        }
+        return response;
+      } catch (_error) {
+        const cache = await caches.open(CACHE_NAME);
+        return (await cache.match('./index.html')) ||
+               (await cache.match(event.request)) ||
+               new Response('PocketCoach could not load offline.', {
+                 status: 503,
+                 headers: { 'Content-Type': 'text/plain' }
+               });
+      }
+    })());
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(event.request);
+    if (cached) return cached;
 
-      return fetch(event.request).then(response => {
-        if (response.ok || response.type === 'opaque') {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return response;
-      });
-    })
-  );
+    try {
+      const response = await fetch(event.request);
+      if (response.ok || response.type === 'opaque') {
+        await cache.put(event.request, response.clone());
+      }
+      return response;
+    } catch (_error) {
+      return cache.match(event.request);
+    }
+  })());
 });
